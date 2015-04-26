@@ -1,0 +1,73 @@
+---
+title: "Earth Science Journal Impact Factor Review"
+author: "S. Oldfield"
+date: "Saturday, April 25, 2015"
+output: html_document
+---
+
+This R Markdown document details the process undertaken to investigat eteh distribution of journal impact factors of Earth Science journals.
+Data sourced from Elslevier.
+
+Source:
+http://www.journalmetrics.com/documents/SNIP_SJR_complete_1999_2013_v1_RIP_becomes_IPP_plus_Conferences_Nov2014.xlsx
+
+### Import data and trim to required dataset
+```
+SNIP <- read.csv("Y:/ee10sjo/Oldfields_PhD/2_Literature/ImpactFactor/SNIP_SJR_complete_1999_2013_v1_RIP_becomes_IPP_plus_Conferences.csv")
+
+DF <- subset(SNIP,SNIP$Top.level..Physical.Sciences=="Physical Sciences")
+```
+Select columns relevant to analysis  
+*cols 1:52 feature analysis data
+*55, 66, 68 contain data for subsetting by subject
+
+```
+subDF <- DF[,c(1:52, 55, 66, 68)]
+subDF <- subDF[DF$X1900.Earth.and.Planetary.Sciences=="Earth and Planetary Sciences",]
+```
+### Reshape data to long format
+```
+library("reshape2", lib.loc="C:/Program Files/R/R-3.1.2/library")
+tidyDF <- melt(subDF[1:52], id.vars = colnames(subDF[,1:7]))
+```
+
+```
+length(unique(tidyDF[,2]))
+```
+record length 1914
+
+```
+length(unique(subDF[,3]))
+```
+record length 1824  
+
+Unique data for original dataste, indicates additional unique values (?). 
+
+```
+length(unique(subDF[,2]))
+
+length(unique(subDF[,1]))
+```
+Use of Scopus_ID, rather than journal name avoids missmatch in unique count  
+
+Both give record length at 1917.
+
+> Need to split impact factor values into split date and impact measure from impact factor variable
+
+Split variable by deliminator and rename columns more clearly.
+```
+tidierDF <- do.call('rbind', strsplit(as.character(tidyDF$variable), '.', fixed = TRUE))
+tidierDF <- cbind(tidyDF, tidierDF)
+names(tidierDF)[10:11] <- c("Year", "Measure")
+tidierDF[,"variable"] <- NULL
+names(tidierDF)[8] <- "Impact"
+tidierDF$Year <- gsub("X", "", tidierDF$Year)
+tidierDF$Year <- as.numeric(tidierDF$Year)
+tidierDF$Impact <- as.numeric(tidierDF$Impact)
+```
+
+Begin analysis of results per journal
+
+```
+SummaryMean <- aggregate(data = tidierDF, Impact ~ Measure + Source.Title, FUN = "mean")
+```
