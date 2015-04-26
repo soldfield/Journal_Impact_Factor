@@ -8,8 +8,11 @@ output: html_document
 This R Markdown document details the process undertaken to investigat eteh distribution of journal impact factors of Earth Science journals.
 Data sourced from Elslevier.
 
-Source:
-http://www.journalmetrics.com/documents/SNIP_SJR_complete_1999_2013_v1_RIP_becomes_IPP_plus_Conferences_Nov2014.xlsx
+```
+url <- "http://www.journalmetrics.com/documents/SNIP_SJR_complete_1999_2013_v1_RIP_becomes_IPP_plus_Conferences_Nov2014.xlsx"
+download.file(url, "./ScopusIF.xlsx", method = "auto", quiet = TRUE)
+```
+Externally the excel file was reviewed and converted to a csv file.
 
 ### Import data and trim to required dataset
 ```
@@ -52,7 +55,7 @@ Use of Scopus_ID, rather than journal name avoids missmatch in unique count
 
 Both give record length at 1917.
 
-> Need to split impact factor values into split date and impact measure from impact factor variable
+Need to split impact factor values into split date and impact measure from impact factor variable
 
 Split variable by deliminator and rename columns more clearly.
 ```
@@ -69,5 +72,22 @@ tidierDF$Impact <- as.numeric(tidierDF$Impact)
 Begin analysis of results per journal
 
 ```
+tidierDF$Impact <- as.numeric(tidierDF$Impact)
+class(tidierDF$Impact)
 SummaryMean <- aggregate(data = tidierDF, Impact ~ Measure + Source.Title, FUN = "mean")
 ```
+
+Reshape table to wide format for ease of plotting
+```
+WideSummaryMean <- reshape(data = SummaryMean, timevar = "Measure", idvar = "Source.Title", direction = "wide")
+```
+
+```{r}
+# pairs(~Impact.IPP+Impact.SJR+Impact.SNIP,data=WideSummaryMean, main="Comparison of Impact Measures")
+library(ggplot2)
+
+ggplot(SummaryMean, aes(x=Impact, fill=Measure)) + geom_histogram(binwidth=.2, alpha=.7, position="identity") + facet_grid(Measure ~ .) + xlim(c(0,5))
+
+```
+
+

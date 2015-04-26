@@ -59,6 +59,9 @@ if (window.hljs && document.readyState && document.readyState === "complete") {
 
 
 <p>This R Markdown document details the process undertaken to investigat eteh distribution of journal impact factors of Earth Science journals. Data sourced from Elslevier.</p>
+<pre><code>url &lt;- &quot;http://www.journalmetrics.com/documents/SNIP_SJR_complete_1999_2013_v1_RIP_becomes_IPP_plus_Conferences_Nov2014.xlsx&quot;
+download.file(url, &quot;./ScopusIF.xlsx&quot;, method = &quot;auto&quot;, quiet = TRUE)</code></pre>
+<p>Externally the excel file was reviewed and converted to a csv file.</p>
 <div id="import-data-and-trim-to-required-dataset" class="section level3">
 <h3>Import data and trim to required dataset</h3>
 <pre><code>SNIP &lt;- read.csv(&quot;Y:/ee10sjo/Oldfields_PhD/2_Literature/ImpactFactor/SNIP_SJR_complete_1999_2013_v1_RIP_becomes_IPP_plus_Conferences.csv&quot;)
@@ -82,15 +85,29 @@ tidyDF &lt;- melt(subDF[1:52], id.vars = colnames(subDF[,1:7]))</code></pre>
 length(unique(subDF[,1]))</code></pre>
 <p>Use of Scopus_ID, rather than journal name avoids missmatch in unique count</p>
 <p>Both give record length at 1917.</p>
-<blockquote>
 <p>Need to split impact factor values into split date and impact measure from impact factor variable</p>
-</blockquote>
 <p>Split variable by deliminator and rename columns more clearly.</p>
 <pre><code>tidierDF &lt;- do.call('rbind', strsplit(as.character(tidyDF$variable), '.', fixed = TRUE))
 tidierDF &lt;- cbind(tidyDF, tidierDF)
 names(tidierDF)[10:11] &lt;- c(&quot;Year&quot;, &quot;Measure&quot;)
 tidierDF[,&quot;variable&quot;] &lt;- NULL
-names(tidierDF)[8] &lt;- &quot;Impact&quot;</code></pre>
+names(tidierDF)[8] &lt;- &quot;Impact&quot;
+tidierDF$Year &lt;- gsub(&quot;X&quot;, &quot;&quot;, tidierDF$Year)
+tidierDF$Year &lt;- as.numeric(tidierDF$Year)
+tidierDF$Impact &lt;- as.numeric(tidierDF$Impact)</code></pre>
+<p>Begin analysis of results per journal</p>
+<pre><code>tidierDF$Impact &lt;- as.numeric(tidierDF$Impact)
+class(tidierDF$Impact)
+SummaryMean &lt;- aggregate(data = tidierDF, Impact ~ Measure + Source.Title, FUN = &quot;mean&quot;)</code></pre>
+<p>Reshape table to wide format for ease of plotting</p>
+<pre><code>WideSummaryMean &lt;- reshape(data = SummaryMean, timevar = &quot;Measure&quot;, idvar = &quot;Source.Title&quot;, direction = &quot;wide&quot;)</code></pre>
+<pre><code>pairs(~Impact.IPP+Impact.SJR+Impact.SNIP,data=WideSummaryMean, 
++       main=&quot;Comparison of Impact Measures&quot;)
+
+hist(x = WideSummaryMean$Impact.SNIP, x=WideSummaryMean$Impact.SJR, plot = TRUE)
+
+ggplot(SummaryMean, aes(x=Impact, fill=Measure)) + geom_histogram(binwidth=.2, alpha=.7, position=&quot;identity&quot;) + facet_grid(Measure ~ .) + xlim(c(0,5))
+</code></pre>
 </div>
 
 
